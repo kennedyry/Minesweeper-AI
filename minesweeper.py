@@ -29,6 +29,9 @@ Possible actions - instead of moving l/r/u/d it is moving to different squares -
 the predicted importance of moving to that square. The values of each square are either if it is a bomb 
 (Bad value - or the predicted worth of revealing it - the number of squares it can reveal) 
 
+
+Possible states -> 
+    Table of (Known Number of Bombs, Undiscovered cells) -> Q-Val corresponds to this? 
 '''
 
 
@@ -277,97 +280,120 @@ class Policy:
 
 
 def q_solve(problem, iterations):
-    q_vals = []
-    problem = problem.restart() # type: Minesweeper
+    pass
+    problem = problem.restart()
 
-    vals = {}
+    # (Tupules of (Known number of neighboring bombs, number of not revealed cells)
+    q_vals = {}
+    for row in range(10):
+        for col in range(10):
+            q_vals[(row, col)] = 0
 
-    for row in range(len(problem.sol_board)):
-        for col in range(len(problem.sol_board[row])):
-            vals[(row,col)] = 0
-
-    for row in range(len(problem.sol_board)):
-        r_cur = []
-        for col in range(len(problem.sol_board[row])):
-            r_cur.append(copy.deepcopy(vals))
-        q_vals.append(r_cur)
-
-
-
-    # iterations = 5 #TODO - Remove once done
-    for c_iteration in range(iterations):
+    for c_iter in range(iterations):
         problem = problem.restart()
-        row = rand.randrange(0, len(problem.sol_board))
-        col = rand.randrange(0, len(problem.sol_board[0]))
-
-
-        problem.reveal(row, col)
+        row = rand.randrange(0, len(problem.user_board))
+        col = rand.randrange(0, len(problem.user_board[0]))
 
         for c_move in range(problem.MAX_MOVES):
-            done, r, c = q_update(row, col, q_vals, problem)
-            # print(problem.__str__(), "\n=====================\n")
+            done, upd_move = q_update(row, col, q_vals, problem)
             if done:
                 break
             else:
-                row = r
-                col = c
-
-    for row in q_vals:
-        out = ""
-        for col in row:
-            out += str(int(max(col.values()))) + " "
-        print(out)
-    for row in problem.sol_board:
-        print(row)
-    # print(problem.__str__())
-
-
+                row, col = upd_move
 
 
 def q_update(row, col, q_vals, problem, policy = None):
+    pass
 
-    if problem.sol_board[row][col] == -1:
-        #Is a bomb - so bad score:
-        for key in q_vals[row][col]:
-            q_vals[row][col][key] = problem.BOMB_REWARD
-        return True, 0, 0
-    elif problem.is_game_over():
-        '''
-            Game has ended from all good cells being revealed - should we just end or give positive 
-            enforcement to weights? 
-        '''
-        return True, 0, 0
-    else:
-        poss_vals = problem.possible_states()
-
-        chosen_move = None
-
-        if rand.random() < problem.EXPLORE_PROB:
-            chosen_move = poss_vals[rand.randrange(0, len(poss_vals))]
-        else:
-            largest = max(q_vals[row][col].values())
-            for key in q_vals[row][col]:
-                if q_vals[row][col][key] == largest:
-                    chosen_move = key
-                    break
-
-        to_move_row, to_move_col = chosen_move
-        before_revealed = problem.revealed_cells
-        q_val_predicted = problem.expected_val_for_cell(to_move_col, to_move_col)
-        problem.reveal(to_move_col, to_move_col)
-        # r_s = problem.revealed_cells - before_revealed
-        #Negate this because it should be bad to have alot of cells?
-        q_val_actual = -problem.sol_board[to_move_col][to_move_col]
-        if q_val_actual == -1:
-            q_val_actual = problem.BOMB_REWARD
-
-        #TODO - Add R(s) val to possibly make cells with no bombs good?
-        #TODO - r_s could potentially mess things up
-        q_vals[row][col][chosen_move] += problem.LEARNING_RATE * \
-                                         ((problem.DISCOUNT_FACTOR * q_val_actual) - q_val_predicted)
-        q_vals[to_move_row][to_move_col][(row, col)] = q_vals[row][col][chosen_move]
-
-        return False, to_move_row, to_move_col
+#
+# def q_solve(problem, iterations):
+#     problem = problem.restart() # type: Minesweeper
+#
+#     q_vals = {}
+#     for row in range(len(problem.sol_board)):
+#         for col in range(len(problem.sol_board[row])):
+#             q_vals[(row,col)] = 0
+#
+#
+#     for c_iter in range(iterations):
+#         problem = problem.restart()
+#         #May cause problems, but like the game has already been generate so probably not?
+#         rand.seed()
+#         row = rand.randrange(0, len(problem.user_board))
+#         col = rand.randrange(0, len(problem.user_board[0]))
+#
+#         # print("Starting coords: ", row , " , ", col)
+#
+#         problem.reveal(row, col)
+#         if problem.game_over:
+#             q_vals[(row, col)] = problem.BOMB_REWARD
+#             continue
+#
+#         for c_move in range(problem.MAX_MOVES):
+#             done, upd_row, upd_col = q_update(row, col, q_vals, problem)
+#             if done:
+#                 break
+#             else:
+#                 row = upd_row
+#                 col = upd_col
+#
+#
+#     for row in range(len(problem.user_board)):
+#         out = ""
+#         for col in range(len(problem.user_board[0])):
+#             out += str(int(q_vals[(row, col)])) + " "
+#         print(out)
+#
+#     # print(problem.__str__())
+#
+#
+#
+#
+# def q_update(row, col, q_vals, problem, policy = None):
+#     chosen_move = None
+#
+#     poss_moves = problem.possible_states()
+#
+#     if rand.random() < problem.EXPLORE_PROB:
+#         chosen_move = poss_moves[rand.randrange(0, len(poss_moves))]
+#     else:
+#         chosen_move = poss_moves[0]
+#         best_score = q_vals[chosen_move]
+#         for key in poss_moves:
+#             if best_score < q_vals[key]:
+#                 best_score = q_vals[key]
+#                 chosen_move = key
+#
+#     initial_revealed_cells = problem.revealed_cells
+#     q_val_predicted = q_vals[chosen_move]
+#
+#     upd_row, upd_col = chosen_move
+#     problem.reveal(upd_row, upd_col)
+#
+#     '''
+#         What should q-val actual be? The value of moving to that state -
+#             - Number of cells it revealed?
+#             - The value of the bombs neighboring it?
+#             - The utility it provides is the number of cells it reveals so probably more like this value
+#     '''
+#     q_val_actual = problem.revealed_cells - initial_revealed_cells + 1
+#
+#
+#     if problem.game_over:
+#         q_vals[chosen_move] = problem.BOMB_REWARD
+#         return True, 0, 0
+#     elif problem.is_game_over():
+#
+#         # print("Game has been won!")
+#         #What do we do here?
+#         pass
+#
+#     q_vals[(row,col)] += problem.LEARNING_RATE * ((problem.DISCOUNT_FACTOR * q_val_actual) - q_val_predicted)
+#     # q_vals[(chosen_move)] += problem.LEARNING_RATE * (q_val_actual - q_val_predicted)
+#     q_vals[chosen_move] = q_val_actual
+#     return False, upd_row, upd_col
+#
+#
 
 
 
@@ -383,9 +409,12 @@ def q_update(row, col, q_vals, problem, policy = None):
 
 
 if __name__ == "__main__":
-    # Minesweeper(10, 10, 5).start()
-    game = Minesweeper(6,6, 3)
+    # Minesweeper(6, 6, 3).start()
+    game = Minesweeper(6,6, 10)
     q_solve(game, 100000)
+    for row in range(len(game.user_board)):
+        for col in range(len(game.user_board[0])):
+            game.user_board[row][col] = 1
     print(game)
 
 
