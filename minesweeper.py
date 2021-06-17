@@ -32,6 +32,10 @@ the predicted importance of moving to that square. The values of each square are
 
 Possible states -> 
     Table of (Known Number of Bombs, Undiscovered cells) -> Q-Val corresponds to this? 
+    
+[ 0/1 0/1 0/1
+  0/1 ___ 0/1     
+  0/1 0/1 0/1 ]
 '''
 
 
@@ -70,7 +74,7 @@ class Minesweeper:
         self.set_neighboring_bombs()
 
         self.BOMB_REWARD = -250
-        self.EXPLORE_PROB = 0.2
+        self.EXPLORE_PROB = 0.01
         self.DISCOUNT_FACTOR = 0.8
         self.LEARNING_RATE = 0.01
 
@@ -295,10 +299,10 @@ def q_solve(problem, iterations):
     mean_length_of_game = 0
     games_won = 0
     games_lost = 0
-
-    for row in range(10):
-        for col in range(10):
-            q_vals[(row, col)] = 0
+    #
+    # for row in range(10):
+    #     for col in range(10):
+    #         q_vals[(row, col)] = 0
 
     for c_iter in range(1, iterations + 1):
         if (c_iter % 1000) == 0:
@@ -363,7 +367,7 @@ def q_update(row, col, q_vals, problem, policy=None):
         util_of_move = problem.expected_val_for_cell(chosen_move[0], chosen_move[1])
     else:
         chosen_move = None
-        best_score = -10000
+        best_score = -float("inf")
 
         for key in bomb_hidden_pairs:
             # Each key is (#Known surrounding bombs, hidden_neighbors)
@@ -381,7 +385,7 @@ def q_update(row, col, q_vals, problem, policy=None):
 
     q_val_actual = None
     if problem.game_over:
-        q_val_actual = -20
+        q_val_actual = -5
     elif problem.is_game_over():
         # We won so maybe some extra reward?
         q_val_actual = 10
@@ -397,66 +401,72 @@ def q_update(row, col, q_vals, problem, policy=None):
 
 if __name__ == "__main__":
     # Minesweeper(6, 6, 3).start()
-    game = Minesweeper(9, 9, 10)
-    q_vals = q_solve(game, 100000)
-    for row in range(len(game.user_board)):
-        for col in range(len(game.user_board[0])):
-            game.user_board[row][col] = 1
-    print(game)
+    game = Minesweeper(9, 9, 5)
+    # game = Minesweeper(16, 16, 40)
 
-    # game = game.restart()
-    # row = rand.randrange(0, len(game.sol_board))
-    # col = rand.randrange(0, len(game.sol_board[0]))
-    #
-    # game.reveal(row, col)
-    # while(game.is_game_over()):
-    #     game = game.restart()
-    #     row = rand.randrange(0, len(game.sol_board))
-    #     col = rand.randrange(0, len(game.sol_board[0]))
-    #
-    # # while(not game.is_game_over()):
-    # #     chosen_move = None
-    # #     util_of_move = None
-    # #
-    # #     # Need some way to get all possible moves -> Convert into Move, Val pairs
-    # #
-    # #     poss_moves = game.possible_states()
-    # #
-    # #     # problem.expected_val_for_cell(row, col) -> Gets you bomb val for all revealed cells around it
-    # #
-    # #     bomb_hidden_pairs = {}
-    # #
-    # #     for move in poss_moves:
-    # #         r, c = move
-    # #         neighboring_bomb_val, hidden_neighbors = game.expected_val_for_cell(r, c)
-    # #
-    # #         if not (neighboring_bomb_val, hidden_neighbors) in bomb_hidden_pairs:
-    # #             bomb_hidden_pairs[(neighboring_bomb_val, hidden_neighbors)] = move
-    # #
-    # #     if rand.random() < game.EXPLORE_PROB:
-    # #         chosen_move = poss_moves[rand.randrange(0, len(poss_moves))]
-    # #         util_of_move = game.expected_val_for_cell(chosen_move[0], chosen_move[1])
-    # #     else:
-    # #         chosen_move = None
-    # #         best_score = -10000
-    # #
-    # #         for key in bomb_hidden_pairs:
-    # #             # Each key is (#Known surrounding bombs, hidden_neighbors)
-    # #             if key not in q_vals:
-    # #                 q_vals[key] = 0
-    # #             if chosen_move is None or q_vals[key] > best_score:
-    # #                 chosen_move = bomb_hidden_pairs[key]
-    # #                 best_score = q_vals[key]
-    # #                 util_of_move = key
-    # #     if util_of_move not in q_vals:
-    # #         q_vals[util_of_move] = 0
-    # #     q_val_predicted = q_vals[util_of_move]
-    # #
-    # #     game.reveal(chosen_move[0], chosen_move[1])
-    # # if game.game_over:
-    # #     print("You lost")
-    # # else:
-    # #     print("You won!")
+    q_vals = q_solve(game, 10000)
+    # for row in range(len(game.user_board)):
+    #     for col in range(len(game.user_board[0])):
+    #         game.user_board[row][col] = 1
+    # print(game)
+
+    game = game.restart()
+    row = rand.randrange(0, len(game.sol_board))
+    col = rand.randrange(0, len(game.sol_board[0]))
+
+    game.reveal(row, col)
+
+    while game.is_game_over():
+        game = game.restart()
+        rand.seed()
+        row = rand.randrange(0, len(game.sol_board))
+        col = rand.randrange(0, len(game.sol_board[0]))
+
+        game.reveal(row, col)
+
+    while(not game.is_game_over()):
+        input("Continue?")
+        print(game.__str__())
+
+        chosen_move = None
+        util_of_move = None
+
+        # Need some way to get all possible moves -> Convert into Move, Val pairs
+
+        poss_moves = game.possible_states()
+
+        # problem.expected_val_for_cell(row, col) -> Gets you bomb val for all revealed cells around it
+
+        bomb_hidden_pairs = {}
+
+        for move in poss_moves:
+            r, c = move
+            neighboring_bomb_val, hidden_neighbors = game.expected_val_for_cell(r, c)
+
+            if not (neighboring_bomb_val, hidden_neighbors) in bomb_hidden_pairs:
+                bomb_hidden_pairs[(neighboring_bomb_val, hidden_neighbors)] = move
+
+
+        if 1 == 1:
+            chosen_move = None
+            best_score = -10000
+
+            for key in bomb_hidden_pairs:
+                if key not in q_vals:
+                    q_vals[key] = 0
+                if chosen_move is None or q_vals[key] > best_score:
+                    chosen_move = bomb_hidden_pairs[key]
+                    best_score = q_vals[key]
+                    util_of_move = key
+        if util_of_move not in q_vals:
+            q_vals[util_of_move] = 0
+        q_val_predicted = q_vals[util_of_move]
+
+        game.reveal(chosen_move[0], chosen_move[1])
+    if game.game_over:
+        print("You lost")
+    else:
+        print("You won!")
 
 
 
