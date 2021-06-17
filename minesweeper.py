@@ -48,6 +48,7 @@ class Minesweeper:
 
     def __init__(self, width=3, height=3, bombs=1):
         rand.seed(500)
+        # rand.seed()
         '''
         Creates a Minesweeper object to play minesweeper with.
         :param width: The width of the board
@@ -74,7 +75,6 @@ class Minesweeper:
         self.LEARNING_RATE = 0.01
 
         self.MAX_MOVES = 1000
-
 
     def restart(self):
         return Minesweeper(len(self.sol_board[0]), len(self.sol_board), self.bombs)
@@ -226,18 +226,24 @@ class Minesweeper:
         :return: The expected state of the cell
         '''
         out = 0
+        non_revealed = 0
+        revealed = 0
         vals = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         for val in vals:
-            r,c = val
+            r, c = val
 
-            upd_x = row + r
-            upd_y = col + c
+            upd_r = row + r
+            upd_c = col + c
 
-            if self.is_revealed(upd_x, upd_y):
-                out += self.sol_board[upd_x, upd_y]
-        return -out
+            if self.is_revealed(upd_r, upd_c):
+                # if self.sol_board[upd_r][upd_c] > 0:
+                #     out += 1
+                out += self.sol_board[upd_r][upd_c]
+                revealed += 1
+            else:
+                non_revealed += 1
 
-
+        return out, non_revealed
 
     def is_revealed(self, row, col):
         '''
@@ -285,136 +291,174 @@ def q_solve(problem, iterations):
 
     # (Tupules of (Known number of neighboring bombs, number of not revealed cells)
     q_vals = {}
+
+    mean_length_of_game = 0
+    games_won = 0
+    games_lost = 0
+
     for row in range(10):
         for col in range(10):
             q_vals[(row, col)] = 0
 
-    for c_iter in range(iterations):
-        problem = problem.restart()
-        row = rand.randrange(0, len(problem.user_board))
-        col = rand.randrange(0, len(problem.user_board[0]))
+    for c_iter in range(1, iterations + 1):
+        if (c_iter % 1000) == 0:
+            print("Current Iteration: ", c_iter, " Mean length of game: ", int(mean_length_of_game / 1000),
+                  " Games Lost: ", games_lost, " Games Won: ", games_won)
+            mean_length_of_game = 0
+            games_won = 0
+            games_lost = 0
 
+        # game_width = len(problem.sol_board)
+        # n_bombs = rand.randrange(1, 5)
+        # problem = Minesweeper(game_width, game_width, n_bombs)
+
+        problem = problem.restart()
+        rand.seed()
+
+        current_row = rand.randrange(0, len(problem.user_board))
+        current_col = rand.randrange(0, len(problem.user_board[0]))
+
+        problem.reveal(current_row, current_col)
+        if problem.is_game_over():
+            continue
         for c_move in range(problem.MAX_MOVES):
-            done, upd_move = q_update(row, col, q_vals, problem)
+            done, r, c = q_update(current_row, current_col, q_vals, problem)
             if done:
+                mean_length_of_game += c_move
                 break
             else:
-                row, col = upd_move
+                current_row, current_col = (r, c)
+        if problem.game_over:
+            games_lost += 1
+        else:
+            games_won += 1
+    print("Done :)")
+    for key in q_vals:
+        print("Key : ", key, " - ", q_vals[key])
+
+    return q_vals
 
 
-def q_update(row, col, q_vals, problem, policy = None):
-    pass
+def q_update(row, col, q_vals, problem, policy=None):
+    chosen_move = None
+    util_of_move = None
 
-#
-# def q_solve(problem, iterations):
-#     problem = problem.restart() # type: Minesweeper
-#
-#     q_vals = {}
-#     for row in range(len(problem.sol_board)):
-#         for col in range(len(problem.sol_board[row])):
-#             q_vals[(row,col)] = 0
-#
-#
-#     for c_iter in range(iterations):
-#         problem = problem.restart()
-#         #May cause problems, but like the game has already been generate so probably not?
-#         rand.seed()
-#         row = rand.randrange(0, len(problem.user_board))
-#         col = rand.randrange(0, len(problem.user_board[0]))
-#
-#         # print("Starting coords: ", row , " , ", col)
-#
-#         problem.reveal(row, col)
-#         if problem.game_over:
-#             q_vals[(row, col)] = problem.BOMB_REWARD
-#             continue
-#
-#         for c_move in range(problem.MAX_MOVES):
-#             done, upd_row, upd_col = q_update(row, col, q_vals, problem)
-#             if done:
-#                 break
-#             else:
-#                 row = upd_row
-#                 col = upd_col
-#
-#
-#     for row in range(len(problem.user_board)):
-#         out = ""
-#         for col in range(len(problem.user_board[0])):
-#             out += str(int(q_vals[(row, col)])) + " "
-#         print(out)
-#
-#     # print(problem.__str__())
-#
-#
-#
-#
-# def q_update(row, col, q_vals, problem, policy = None):
-#     chosen_move = None
-#
-#     poss_moves = problem.possible_states()
-#
-#     if rand.random() < problem.EXPLORE_PROB:
-#         chosen_move = poss_moves[rand.randrange(0, len(poss_moves))]
-#     else:
-#         chosen_move = poss_moves[0]
-#         best_score = q_vals[chosen_move]
-#         for key in poss_moves:
-#             if best_score < q_vals[key]:
-#                 best_score = q_vals[key]
-#                 chosen_move = key
-#
-#     initial_revealed_cells = problem.revealed_cells
-#     q_val_predicted = q_vals[chosen_move]
-#
-#     upd_row, upd_col = chosen_move
-#     problem.reveal(upd_row, upd_col)
-#
-#     '''
-#         What should q-val actual be? The value of moving to that state -
-#             - Number of cells it revealed?
-#             - The value of the bombs neighboring it?
-#             - The utility it provides is the number of cells it reveals so probably more like this value
-#     '''
-#     q_val_actual = problem.revealed_cells - initial_revealed_cells + 1
-#
-#
-#     if problem.game_over:
-#         q_vals[chosen_move] = problem.BOMB_REWARD
-#         return True, 0, 0
-#     elif problem.is_game_over():
-#
-#         # print("Game has been won!")
-#         #What do we do here?
-#         pass
-#
-#     q_vals[(row,col)] += problem.LEARNING_RATE * ((problem.DISCOUNT_FACTOR * q_val_actual) - q_val_predicted)
-#     # q_vals[(chosen_move)] += problem.LEARNING_RATE * (q_val_actual - q_val_predicted)
-#     q_vals[chosen_move] = q_val_actual
-#     return False, upd_row, upd_col
-#
-#
+    # Need some way to get all possible moves -> Convert into Move, Val pairs
 
+    poss_moves = problem.possible_states()
 
+    # problem.expected_val_for_cell(row, col) -> Gets you bomb val for all revealed cells around it
 
+    bomb_hidden_pairs = {}
 
+    for move in poss_moves:
+        r, c = move
+        neighboring_bomb_val, hidden_neighbors = problem.expected_val_for_cell(r, c)
 
+        if not (neighboring_bomb_val, hidden_neighbors) in bomb_hidden_pairs:
+            bomb_hidden_pairs[(neighboring_bomb_val, hidden_neighbors)] = move
 
+    if rand.random() < problem.EXPLORE_PROB:
+        chosen_move = poss_moves[rand.randrange(0, len(poss_moves))]
+        util_of_move = problem.expected_val_for_cell(chosen_move[0], chosen_move[1])
+    else:
+        chosen_move = None
+        best_score = -10000
 
+        for key in bomb_hidden_pairs:
+            # Each key is (#Known surrounding bombs, hidden_neighbors)
+            if key not in q_vals:
+                q_vals[key] = 0
+            if chosen_move is None or q_vals[key] > best_score:
+                chosen_move = bomb_hidden_pairs[key]
+                best_score = q_vals[key]
+                util_of_move = key
+    if util_of_move not in q_vals:
+        q_vals[util_of_move] = 0
+    q_val_predicted = q_vals[util_of_move]
 
+    problem.reveal(chosen_move[0], chosen_move[1])
 
+    q_val_actual = None
+    if problem.game_over:
+        q_val_actual = -20
+    elif problem.is_game_over():
+        # We won so maybe some extra reward?
+        q_val_actual = 10
+    else:
+        # Probably isnt a good thing here, but how do we reward it not being a bomb
+        q_val_actual = 10
 
-
-
+    q_vals[util_of_move] += problem.LEARNING_RATE * ((problem.DISCOUNT_FACTOR * q_val_actual) - q_val_predicted)
+    if problem.is_game_over():
+        return True, 0, 0
+    return False, chosen_move[0], chosen_move[1]
 
 
 if __name__ == "__main__":
     # Minesweeper(6, 6, 3).start()
-    game = Minesweeper(6,6, 10)
-    q_solve(game, 100000)
+    game = Minesweeper(9, 9, 10)
+    q_vals = q_solve(game, 100000)
     for row in range(len(game.user_board)):
         for col in range(len(game.user_board[0])):
             game.user_board[row][col] = 1
     print(game)
+
+    # game = game.restart()
+    # row = rand.randrange(0, len(game.sol_board))
+    # col = rand.randrange(0, len(game.sol_board[0]))
+    #
+    # game.reveal(row, col)
+    # while(game.is_game_over()):
+    #     game = game.restart()
+    #     row = rand.randrange(0, len(game.sol_board))
+    #     col = rand.randrange(0, len(game.sol_board[0]))
+    #
+    # # while(not game.is_game_over()):
+    # #     chosen_move = None
+    # #     util_of_move = None
+    # #
+    # #     # Need some way to get all possible moves -> Convert into Move, Val pairs
+    # #
+    # #     poss_moves = game.possible_states()
+    # #
+    # #     # problem.expected_val_for_cell(row, col) -> Gets you bomb val for all revealed cells around it
+    # #
+    # #     bomb_hidden_pairs = {}
+    # #
+    # #     for move in poss_moves:
+    # #         r, c = move
+    # #         neighboring_bomb_val, hidden_neighbors = game.expected_val_for_cell(r, c)
+    # #
+    # #         if not (neighboring_bomb_val, hidden_neighbors) in bomb_hidden_pairs:
+    # #             bomb_hidden_pairs[(neighboring_bomb_val, hidden_neighbors)] = move
+    # #
+    # #     if rand.random() < game.EXPLORE_PROB:
+    # #         chosen_move = poss_moves[rand.randrange(0, len(poss_moves))]
+    # #         util_of_move = game.expected_val_for_cell(chosen_move[0], chosen_move[1])
+    # #     else:
+    # #         chosen_move = None
+    # #         best_score = -10000
+    # #
+    # #         for key in bomb_hidden_pairs:
+    # #             # Each key is (#Known surrounding bombs, hidden_neighbors)
+    # #             if key not in q_vals:
+    # #                 q_vals[key] = 0
+    # #             if chosen_move is None or q_vals[key] > best_score:
+    # #                 chosen_move = bomb_hidden_pairs[key]
+    # #                 best_score = q_vals[key]
+    # #                 util_of_move = key
+    # #     if util_of_move not in q_vals:
+    # #         q_vals[util_of_move] = 0
+    # #     q_val_predicted = q_vals[util_of_move]
+    # #
+    # #     game.reveal(chosen_move[0], chosen_move[1])
+    # # if game.game_over:
+    # #     print("You lost")
+    # # else:
+    # #     print("You won!")
+
+
+
 
 
