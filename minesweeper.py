@@ -3,39 +3,6 @@ import random as rand
 import copy
 
 '''
-Q Learning 
-
-Make heuristic - be the number of neighbhoring 
-
-Have Gym generate training data - this data influences the best move on the network - probabalisticly. 
-
-NN to determine whether or not this is a good state. 
-
-NN that takes in the 9 neighboring cells of a cell -> Outputs whether the move is good or not. 
-
-
-Opt of that game - Q-Val on Bombs should be Bad -> Some negative value 
-Q-Val -> Number of Neighboring 
-R(s) = The current state reward + Best expected utility for a different choice 
-
-R(s) = Value of the square - number of neighborubg bombs 
--> Q-Value = bomb cell or something? 
-
-Could R(S) be the number of cells that were revealed from that move? COuld potentially make it 
-more likely to end games faster by vastly reducing things. 
-
-
-Possible actions - instead of moving l/r/u/d it is moving to different squares - each Q-Val[row][col] represents
-the predicted importance of moving to that square. The values of each square are either if it is a bomb 
-(Bad value - or the predicted worth of revealing it - the number of squares it can reveal) 
-
-
-Possible states -> 
-    Table of (Known Number of Bombs, Undiscovered cells) -> Q-Val corresponds to this? 
-    
-[ 0/1 0/1 0/1
-  0/1 ___ 0/1     
-  0/1 0/1 0/1 ]
 '''
 
 
@@ -143,10 +110,6 @@ class Minesweeper:
         if row < 0 or col < 0 or row >= len(self.sol_board) or col >= len(self.sol_board[0]):
             raise IndexError("Please enter valid inputs!")
 
-        # if self.user_board[row][col] != 1:
-        #     self.revealed_cells += 1
-        #
-        # self.user_board[row][col] = 1
         self.flood(row, col)
         if self.sol_board[row][col] == -1:
             self.game_over = True
@@ -193,7 +156,6 @@ class Minesweeper:
                 elif self.sol_board[i][j] == -1:
                     out += 'X|'
                 else:
-                    # out += "{:2f}".format(int(self.sol_board[i][j]))
                     out += str(int(self.sol_board[i][j])).zfill(1) + "|"
             out += '\n'
             for j in range(2 * len(self.user_board[i]) + 1):
@@ -240,8 +202,6 @@ class Minesweeper:
             upd_c = col + c
 
             if self.is_revealed(upd_r, upd_c):
-                # if self.sol_board[upd_r][upd_c] > 0:
-                #     out += 1
                 out += self.sol_board[upd_r][upd_c]
                 revealed += 1
             else:
@@ -293,16 +253,11 @@ def q_solve(problem, iterations):
     pass
     problem = problem.restart()
 
-    # (Tupules of (Known number of neighboring bombs, number of not revealed cells)
     q_vals = {}
 
     mean_length_of_game = 0
     games_won = 0
     games_lost = 0
-    #
-    # for row in range(10):
-    #     for col in range(10):
-    #         q_vals[(row, col)] = 0
 
     for c_iter in range(1, iterations + 1):
         if (c_iter % 1000) == 0:
@@ -311,10 +266,6 @@ def q_solve(problem, iterations):
             mean_length_of_game = 0
             games_won = 0
             games_lost = 0
-
-        # game_width = len(problem.sol_board)
-        # n_bombs = rand.randrange(1, 5)
-        # problem = Minesweeper(game_width, game_width, n_bombs)
 
         problem = problem.restart()
         rand.seed()
@@ -400,15 +351,10 @@ def q_update(row, col, q_vals, problem, policy=None):
 
 
 if __name__ == "__main__":
-    # Minesweeper(6, 6, 3).start()
-    game = Minesweeper(9, 9, 5)
-    # game = Minesweeper(16, 16, 40)
+    game = Minesweeper(9, 9, 10)
 
     q_vals = q_solve(game, 10000)
-    # for row in range(len(game.user_board)):
-    #     for col in range(len(game.user_board[0])):
-    #         game.user_board[row][col] = 1
-    # print(game)
+
 
     game = game.restart()
     row = rand.randrange(0, len(game.sol_board))
